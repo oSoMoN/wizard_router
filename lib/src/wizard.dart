@@ -156,9 +156,10 @@ class Wizard extends StatefulWidget {
   /// - [WizardScopeState.back]
   /// - [WizardScopeState.home]
   static WizardScopeState of(BuildContext context) {
-    final scope = context.findAncestorStateOfType<WizardScopeState>();
+    final wizard =
+        context.dependOnInheritedWidgetOfExactType<_InheritedWizard>();
     assert(() {
-      if (scope == null) {
+      if (wizard == null) {
         throw FlutterError(
           'Wizard operation requested with a context that does not include a Wizard.\n'
           'The context passed to Wizard.of(context) must belong to a widget that is a descendant of a Wizard widget.',
@@ -166,7 +167,7 @@ class Wizard extends StatefulWidget {
       }
       return true;
     }());
-    return scope!;
+    return wizard!.scope;
   }
 
   @override
@@ -209,6 +210,23 @@ class _WizardState extends State<Wizard> {
             .toList();
       },
     );
+  }
+}
+
+class _InheritedWizard extends InheritedWidget {
+  const _InheritedWizard({
+    Key? key,
+    required this.scope,
+    required this.routes,
+    required Widget child,
+  }) : super(key: key, child: child);
+
+  final WizardScopeState scope;
+  final List<_WizardRouteSettings> routes;
+
+  @override
+  bool updateShouldNotify(covariant _InheritedWizard oldWidget) {
+    return routes != oldWidget.routes;
   }
 }
 
@@ -340,7 +358,13 @@ class WizardScopeState extends State<WizardScope> {
   bool get hasNext => _getRoutes().length < widget._routes.length;
 
   @override
-  Widget build(BuildContext context) => widget._route.builder(context);
+  Widget build(BuildContext context) {
+    return _InheritedWizard(
+      scope: this,
+      routes: _getRoutes(),
+      child: widget._route.builder(context),
+    );
+  }
 }
 
 class _WizardRouteSettings<T extends Object?> extends RouteSettings {
